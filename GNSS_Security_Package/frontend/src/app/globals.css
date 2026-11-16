@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f4f7fe;
+  --foreground: #1b2559;
+}
+
+[class~="dark"] {
+  --background: #0b1120;
+  --foreground: #ffffff;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-inter), sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+@layer components {
+  .bento-card {
+    @apply rounded-3xl bg-white dark:bg-dark-card shadow-soft dark:shadow-soft-dark border border-transparent dark:border-white/5 transition-all duration-300;
+  }
+
+  .sidebar-container {
+    @apply w-full h-full bg-soft-blue dark:bg-soft-blue-dark rounded-4xl p-6 transition-colors duration-300;
+  }
+
+  /* Fluid Chart Overrides */
+  .recharts-cartesian-grid-horizontal line,
+  .recharts-cartesian-grid-vertical line {
+    @apply stroke-gray-200 dark:stroke-white/10;
+  }
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-white/20 rounded-full;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
