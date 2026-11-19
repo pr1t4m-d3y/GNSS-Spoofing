@@ -1,0 +1,10 @@
+B4 sustained (5x100 rows) seed 0: P=0.7009 R=0.3280 F1=0.4469 | TP=164 FP=70 FN=336 TN=6843 n=7413
+B4 sustained (5x100 rows) seed 1: P=0.2605 R=0.0620 F1=0.1002 | TP=31 FP=88 FN=469 TN=6825 n=7413
+B4 sustained (5x100 rows) seed 2: P=0.6106 R=0.2760 F1=0.3802 | TP=138 FP=88 FN=362 TN=6825 n=7413
+natural std: Doppler 1746 Hz | Pseudorange 776678 m | CN0 2.42 dB-Hz  vs injected +350..600 Hz, +800..1200 m, +2..5 dB
+model file size bytes: 2286864
+model-only latency batch=    1: p50=3.85 ms p95=3.93 ms -> 260 rows/s
+model-only latency batch=  100: p50=4.01 ms p95=4.07 ms -> 24,962 rows/s
+model-only latency batch= 1000: p50=6.40 ms p95=6.48 ms -> 156,141 rows/s
+model-only latency batch=10000: p50=27.12 ms p95=27.43 ms -> 368,686 rows/s
+peak RSS of this process (MB, includes pandas/xlrd load of train.xls): 374

@@ -1,0 +1,11 @@
+raw shape (65535, 16) cols ['time', 'channel', 'PRN', 'Carrier_Doppler_hz', 'Pseudorange_m', 'RX_time', 'TOW', 'Carrier_phase', 'EC', 'LC', 'PC', 'PIP', 'PQP', 'TCD', 'CN0', 'spoofed']
+chX placeholder rows: 8
+backend clean shape (24733, 16) | NaN PRN rows: 8
+spoofed value counts {0: 24733}
+channels ['ch0', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7'] n = 8
+unique PRNs [np.int64(2), np.int64(6), np.int64(11), np.int64(12), np.int64(17), np.int64(19), np.int64(25)]
+time range 0 8191 unique epochs 6758
+features: base 10 eng 11 roll 14 total 35 unique 35
+raw input columns the model needs: ['time', 'channel', 'PRN', 'Carrier_Doppler_hz', 'Pseudorange_m', 'RX_time', 'TOW', 'Carrier_phase', 'EC', 'LC', 'PC', 'PIP', 'PQP', 'TCD', 'CN0']
+{'ch0': 5560, 'ch1': 1549, 'ch2': 900, 'ch3': 2512, 'ch4': 5400, 'ch5': 5400, 'ch6': 2512, 'ch7': 900}
+per-channel time monotonic: {'ch0': True, 'ch1': True, 'ch2': True, 'ch3': True, 'ch4': True, 'ch5': True, 'ch6': True, 'ch7': True}

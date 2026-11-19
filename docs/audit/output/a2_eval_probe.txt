@@ -1,0 +1,11 @@
+clean genuine rows: 24725
+A notebook-protocol, shipped model, seed 0: P=0.1483 R=0.2900 F1=0.1963 | TP=58 FP=333 FN=142 TN=1467 | n=2000
+   flagged rate: 0.1955 | genuine-row flag rate (FPR): 0.185
+A notebook-protocol, shipped model, seed 1: P=0.1569 R=0.3200 F1=0.2105 | TP=64 FP=344 FN=136 TN=1456 | n=2000
+A notebook-protocol, shipped model, seed 2: P=0.1327 R=0.2250 F1=0.1670 | TP=45 FP=294 FN=155 TN=1506 | n=2000
+B split: train 17312 | held-out 7413 (time-ordered per channel)
+B held-out, 10% injected, seed 0: P=0.1664 R=0.1242 F1=0.1422 | TP=92 FP=461 FN=649 TN=6211 | n=7413
+B held-out, 10% injected, seed 1: P=0.1778 R=0.1188 F1=0.1424 | TP=88 FP=407 FN=653 TN=6265 | n=7413
+B held-out, 10% injected, seed 2: P=0.2319 R=0.1552 F1=0.1859 | TP=115 FP=381 FN=626 TN=6291 | n=7413
+B2 pure-genuine held-out flag rate (FPR): 0.0119
+B3 shipped model flag rate on same rows: 0.0111
