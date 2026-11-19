@@ -42,3 +42,6 @@ yarn-error.log*
 .ruff_cache/
 coverage.xml
 *.egg-info/
+
+# Labelled data is not committed (see data/README.md)
+data/labelled/

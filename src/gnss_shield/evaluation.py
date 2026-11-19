@@ -127,6 +127,15 @@ def ranking_metrics(y_true: np.ndarray, anomaly_scores: np.ndarray) -> dict[str,
     }
 
 
+def metric_set(
+    y_true: np.ndarray, predicted: np.ndarray, anomaly_scores: np.ndarray
+) -> dict[str, Any]:
+    """Binary metrics plus ranking metrics for one model's predictions and scores."""
+    result: dict[str, Any] = binary_metrics(y_true, predicted)
+    result.update(ranking_metrics(y_true, anomaly_scores))
+    return result
+
+
 def evaluate_frame(pipeline: Any, frame: pd.DataFrame, labels: np.ndarray) -> dict[str, Any]:
     """Score a labelled frame (stateless batch features) with a fitted pipeline."""
     labelled = frame.reset_index(drop=True).copy()
