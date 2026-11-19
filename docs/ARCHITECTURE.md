@@ -53,6 +53,10 @@ What it does need is access to **tracking-loop outputs**: `EC`, `LC`, `PC` (earl
 
 `evals/run.py` fits on the first 70% of each channel's timeline and scores the remaining 30% after injecting synthetic attacks (a documented additive perturbation of Doppler, pseudorange and CN0), scattered or in sustained blocks, over several seeds. Labels are used only for scoring. The generated report states the recipe, the split, the labelling convention and its limits, including that rolling windows spread an attack over neighbouring rows, so row-level precision is conservative. See `src/gnss_shield/evaluation.py`.
 
+## Supervised baseline
+
+`evals/compare.py` (library code in `src/gnss_shield/comparison.py` and `supervised.py`) trains an XGBoost classifier on the same 35 features and the same time-ordered split as the Isolation Forest, using real labels. The forest sees only genuine training rows; XGBoost also sees the spoofed rows, re-weighted by the genuine-to-spoofed ratio. The report gives overall and per-attack-class results and the most important features. It measures the value of labels, not which algorithm is better in general. XGBoost is a development dependency and is not part of the API image: the deployed detector stays unsupervised, so it does not depend on having seen an attack before. The comparison needs real labelled data and refuses to run when either split lacks genuine or spoofed rows.
+
 ## Service security
 
 * Authentication is an `X-API-Key` header compared in constant time. If no key is configured and auth was not explicitly disabled, protected routes answer 503 instead of allowing traffic.
@@ -71,4 +75,4 @@ flowchart LR
     Secret -.-> Api
 ```
 
-`deploy/deploy.sh` builds both images with Cloud Build (`gcloud run deploy --source`), creates a dedicated runtime service account and the secret, and deploys both services with scale to zero. `deploy/budget.sh` creates a billing budget alert and `deploy/teardown.sh` removes what the deploy created. The memory and concurrency settings in the script were chosen without measurement; [ROADMAP.md](ROADMAP.md) tracks tuning them from `make bench`.
+`deploy/deploy.sh` builds both images with Cloud Build (`gcloud run deploy --source`), creates a dedicated runtime service account and the secret, and deploys both services with scale to zero. `deploy/budget.sh` creates a billing budget alert, `deploy/smoke_test.sh` checks the deployed API, and `deploy/teardown.sh` removes what the deploy created. `evals/bench_http.py` measures end-to-end latency against any base URL, including the first request after idle. The memory and concurrency settings in the script were chosen without measurement; [ROADMAP.md](ROADMAP.md) tracks tuning them from `make bench`.

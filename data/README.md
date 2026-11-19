@@ -13,3 +13,11 @@ Measured with `docs/audit/a1_data_facts.py` and `docs/audit/a2_eval_probe.py` (s
 The schema matches the public dataset by Ghilas Aissou (University of North Dakota), *A DATASET for GPS Spoofing Detection on Unmanned Aerial System*, Mendeley Data V3, 2022, DOI [10.17632/z7dj3yyzt8.3](https://doi.org/10.17632/z7dj3yyzt8.3), licence CC BY 4.0 (read from its Mendeley page). The sheet in this repository was handed out for a college hackathon at SRM; whether it is a verbatim subset of that dataset has not been confirmed (see [../docs/ROADMAP.md](../docs/ROADMAP.md)). Anyone reusing the data should cite the original dataset.
 
 The hackathon's separate unlabelled `test.xls` is not included.
+
+## Labelled data for the XGBoost comparison
+
+`make compare` needs telemetry with real spoofing labels, which `train.xls` does not have. The public dataset above provides them. To use it:
+
+1. Download the dataset files from its Mendeley page and place them in `data/labelled/` (this folder is git-ignored; the data is not redistributed here).
+2. Each file must follow the same columns as `train.xls`, with a label column where 0 means genuine and any other value marks a spoofed row. If the label column has another name, pass `--label-column` to `evals/compare.py`.
+3. Run `make compare DATA="data/labelled/<file> data/labelled/<file2>"`. Each file is treated as a separate recording and split by time on its own.

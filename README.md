@@ -58,7 +58,7 @@ This copies `.env.example` to `.env` if needed, builds both images and serves th
 
 ### Without Docker
 
-Python 3.10 to 3.13 and Node 20 are required.
+Python 3.10 to 3.13 (3.12 recommended, see `.python-version`) and Node 20 are required.
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
@@ -105,6 +105,7 @@ All settings are environment variables; see [.env.example](.env.example). The im
 make test     # pytest with coverage
 make eval     # writes evals/results/RESULTS.md
 make bench    # writes evals/results/EDGE.md
+make bench-http  # end-to-end HTTP latency against a running API
 make train    # refits the model on data/train.xls and rewrites the manifest
 ```
 
@@ -112,7 +113,11 @@ make train    # refits the model on data/train.xls and rewrites the manifest
 
 `make bench` runs in a fresh process and reports model size, peak memory, CPU latency (p50, p95, p99) and throughput by batch size, and lists the receiver fields the detector needs.
 
-Both commands generate their report files; the numbers belong in those files and are not copied here by hand.
+`make bench-http URL=<service-url>` measures the full request path against a local or deployed API, including the first request after idle, and writes `evals/results/HTTP.md`.
+
+`make compare DATA="data/labelled/<file> ..."` compares the Isolation Forest with a supervised XGBoost model on real labelled attack data, with the same features and the same time-ordered split, and writes `evals/results/COMPARE.md` with overall and per-attack-class results. It needs the labelled dataset described in [data/README.md](data/README.md).
+
+These commands generate their report files; the numbers belong in those files and are not copied here by hand.
 
 ## Deploy to Google Cloud
 
@@ -124,7 +129,7 @@ export GCP_REGION=<region>
 make deploy
 ```
 
-To create a billing budget alert first, set `BILLING_ACCOUNT_ID` and `BUDGET_AMOUNT` and run `make budget`. `make teardown` removes the services, the secret and the service account. Details and limits are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+To create a billing budget alert first, set `BILLING_ACCOUNT_ID` and `BUDGET_AMOUNT` and run `make budget`. `make smoke` then checks the deployed API (health, readiness, authentication, one scored batch), and `make teardown` removes the services, the secret and the service account. Details and limits are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Dataset credit
 
@@ -137,9 +142,9 @@ The sheet in `data/` was used for a college hackathon at SRM and contains only g
 ## Project layout
 
 ```text
-src/gnss_shield/   detector, features, API, training, evaluation library
+src/gnss_shield/   detector, features, API, training, evaluation and comparison library
 tests/             pytest suites
-evals/             evaluation and benchmark scripts, generated reports
+evals/             evaluation, comparison and benchmark scripts, generated reports
 frontend/          Next.js dashboard and its Dockerfile
 models/            model artefact and manifest
 data/              training sheet and notes on its source
@@ -148,6 +153,10 @@ notebooks/         original Colab notebook
 examples/          sample telemetry files
 docs/              architecture, roadmap, audit
 ```
+
+## License
+
+MIT, see [LICENSE](LICENSE). The dataset keeps its own CC BY 4.0 terms.
 
 ## Roadmap
 

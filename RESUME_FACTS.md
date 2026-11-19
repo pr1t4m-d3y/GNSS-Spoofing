@@ -20,10 +20,11 @@ Rule used here: a fact is listed as verified only if code ran and produced it. S
 
 | Item | Where | Becomes claimable when |
 |---|---|---|
-| 84 test functions across 7 files | `tests/` | `make test` passes; quote the pass count and the coverage figure from that run (ROADMAP item 1) |
+| 90 test functions across 8 files | `tests/` | `make test` passes; quote the pass count and the coverage figure from that run (ROADMAP item 1) |
 | Dockerfiles, Compose file, CI workflow | `Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml` | Images build and CI is green (items 1, 3, 4) |
-| Reproducible evaluation and benchmark | `evals/run.py`, `evals/bench.py` | The generated `RESULTS.md` and `EDGE.md` exist (items 6, 7) |
-| Cloud Run deployment scripts | `deploy/` | A deploy and teardown have been run and a URL exists (item 17) |
+| Reproducible evaluation, benchmark and HTTP latency script | `evals/run.py`, `evals/bench.py`, `evals/bench_http.py` | The generated `RESULTS.md`, `EDGE.md` and `HTTP.md` exist (items 6, 7, 8) |
+| Isolation Forest vs XGBoost comparison on real labels | `evals/compare.py`, `src/gnss_shield/comparison.py` | `COMPARE.md` exists, produced from real labelled data (items 11, 12) |
+| Cloud Run deployment scripts | `deploy/` | A deploy, `make smoke` and teardown have been run and a URL exists (item 15) |
 | API hardening: validation, `/health`, `/ready`, batch endpoint, API-key auth, JSON logging | `src/gnss_shield/api.py` | Tests pass (item 1) |
 
 ## 3. Claims to remove or reword
@@ -32,9 +33,9 @@ Rule used here: a fact is listed as verified only if code ran and produced it. S
 |---|---|---|---|---|
 | G1 | Python, scikit-learn, FastAPI, React, Docker | Docker image never built; the GUI is Next.js on React | "Python, scikit-learn, FastAPI, Next.js (React)" | Add "Docker" after ROADMAP item 4 |
 | G2 | "94% precision … 120K+ telemetry records … 13 features from 8 satellite channels" | No source for 94%; the repo had no labelled evaluation; 24,725 usable rows, not 120K+; the model uses 35 features | "Built an unsupervised Isolation Forest spoofing detector trained on 24,725 genuine receiver-telemetry rows from an 8-channel receiver, engineering 13 raw receiver fields into 35 physics-informed features" | Add the precision, recall and F1 from `evals/results/RESULTS.md` with the words "on a time-ordered split with synthetic attack injection" (item 6) |
-| G3 | "physics-informed XGBoost pipeline and an Isolation Forest Colab notebook" | No XGBoost code exists | "Isolation Forest prototype in a Colab notebook" | Mention XGBoost only after ROADMAP item 13 ships |
+| G3 | "physics-informed XGBoost pipeline and an Isolation Forest Colab notebook" | XGBoost exists only as comparison code that has not been run on labelled data | "Isolation Forest prototype in a Colab notebook" | Mention XGBoost only after `evals/results/COMPARE.md` exists (ROADMAP item 12), e.g. "compared an unsupervised Isolation Forest with a supervised XGBoost baseline on real labelled attacks" with the figures from that file |
 | G4 | "Dockerized FastAPI service with a React GUI, backed by Pytest suites" | Docker and tests not yet run | "FastAPI service with a Next.js dashboard and a pytest suite" | "…with N tests at X% coverage, built into Docker images" using the figures from the runs (items 1, 4) |
 | G5 | "runs on existing GNSS equipment without new hardware, after feedback" | The model needs tracking-loop outputs, which NMEA and standard RINEX files do not contain; no feedback trace in the repo | "Designed as a software-only, CPU-only detector (2.2 MB model) that scores receiver tracking-loop outputs, with no added RF hardware" | Add latency, throughput and peak memory from `evals/results/EDGE.md` (item 7) |
 | G6 | "Lead AI Researcher for the NyneOS/IIT Delhi Anti-Spoofing AI Hackathon (Apr 2026)" | Inaccurate: it was your own SRM college hackathon using a public dataset | "Built an unsupervised GNSS spoofing detector for the 1forAll Open Innovation Hackathon at SRMIST, using a public GNSS spoofing dataset" | Name the dataset (Aissou, Mendeley, CC BY 4.0) once ROADMAP item 10 confirms the sheet comes from it |
 
-Do not use: "94% precision", "120K+ records", "XGBoost", "Lead AI Researcher", "NyneOS", "IIT Delhi", "works with NMEA/RINEX", "deployed on Google Cloud" (until item 17 produces a URL).
+Do not use: "94% precision", "120K+ records", "XGBoost", "Lead AI Researcher", "NyneOS", "IIT Delhi", "works with NMEA/RINEX", "deployed on Google Cloud" (until item 15 produces a URL).
