@@ -1,5 +1,7 @@
 # GNSS Security Shield — Audit (Steps 1 & 2)
 
+**Historical document.** File paths in this audit refer to the repository layout at commit `b4e6aa0`, before the restructure; current status is tracked in [`ROADMAP.md`](ROADMAP.md).
+
 Audited on branch `feat/fde-upgrade` (cut from `main` @ `b4e6aa0`). Every number below was produced by code that ran in this audit; the scripts and raw logs live in [`docs/audit/`](audit/) and [`docs/audit/output/`](audit/output/). Nothing in the product code was changed.
 
 **Audit environment:** macOS, Python 3.14.8, fresh venv, `pip install -r backend/requirements.txt` (unpinned) → scikit-learn 1.9.1, pandas 3.1.1, numpy 2.5.5, fastapi 0.165.0. Node, Docker and `gcloud` are **not installed** on this machine, so the React GUI, Docker image and any cloud step could not be run here (see "Can't verify").
@@ -31,7 +33,7 @@ Audited on branch `feat/fde-upgrade` (cut from `main` @ `b4e6aa0`). Every number
 | CI? | **None.** No `.github/`. | `git ls-files`. |
 | Hard-coded secrets? | **None found** (no keys, tokens or passwords). | `git grep -iE 'api[_-]?key\|secret\|token\|password\|PRIVATE KEY'` → no hits. |
 | Dataset in repo? | **Yes, but only partly.** `train.xls` (12.6 MB, legacy `.xls`, needs `xlrd`) is committed. The hackathon `test.xls` is **not** in the repo, so `submission.csv` (29,926 rows) can't be regenerated. No download script, no source/licence note. | `GNSS_Security_Package/train.xls`; notebook cell 13 reads `test.xls`. |
-| Repo hygiene | Model pickle committed **twice** (identical, `cmp` confirmed): root `GNSS_AntiSpoofing_Project_Bundle/` and `GNSS_Security_Package/GNSS_AntiSpoofing_Project_Bundle/`. A stray `Know your project.md` sits at the root. The run guide contains a hard-coded `/Users/atharv/Downloads/...` path. | `git ls-files`, `cmp`. |
+| Repo hygiene | Model pickle committed **twice** (identical, `cmp` confirmed): root `GNSS_AntiSpoofing_Project_Bundle/` and `GNSS_Security_Package/GNSS_AntiSpoofing_Project_Bundle/`. A stray `Know your project.md` sits at the root. The run guide contains a hard-coded developer-specific absolute path. | `git ls-files`, `cmp`. |
 
 ### API behaviour found while exercising it (relevant to the hardening plan)
 

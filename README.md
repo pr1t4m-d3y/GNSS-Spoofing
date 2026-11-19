@@ -1,59 +1,154 @@
-# 🛡️ GNSS Security Shield
-**Real-Time UAV GPS Anti-Spoofing & Zero-Day Threat Detection Engine**
+# GNSS Security Shield
 
-[![Next.js](https://img.shields.io/badge/Frontend-Next.js_14-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-[![Python](https://img.shields.io/badge/Backend-Python_FastAPI-blue?style=for-the-badge&logo=python)](https://fastapi.tiangolo.com/)
-[![Scikit-Learn](https://img.shields.io/badge/AI_Engine-Isolation_Forest-orange?style=for-the-badge&logo=scikit-learn)](https://scikit-learn.org/)
-[![Hackathon](https://img.shields.io/badge/Hackathon-1forAll_SRMIST-green?style=for-the-badge)](https://github.com/)
+**Detect GNSS spoofing from receiver telemetry, without labelled attack data and without extra RF hardware.**
 
-> **Team 1forAll** | Developed for the 1forAll Open Innovation Hackathon
+GNSS Security Shield scores every epoch of receiver telemetry with an unsupervised Isolation Forest that was fitted only on genuine signals. Instead of learning what known attacks look like, it learns what authentic satellite signals look like, and flags rows whose physical relationships break: Doppler against range rate, pseudorange against transit time, carrier phase against pseudorange, I/Q power balance and correlator lock. A FastAPI service exposes the detector, and a Next.js dashboard lets an operator upload telemetry logs or inject single signals and watch the anomaly score.
 
-## 🚨 The Problem: Vulnerable Navigation
-Global Navigation Satellite Systems (GNSS) are the backbone of modern UAVs, aviation, logistics, and telecom networks. However, the open broadcast nature of these signals makes them highly susceptible to **Spoofing Attacks**. Existing security measures often rely on recognizing *known* attack signatures, leaving systems blind to sophisticated, zero-day manipulations.
+## Architecture
 
-## 💡 The Solution: Physics-Informed Anomaly Detection
-The **GNSS Security Shield** is a software-based, AI-driven defense mechanism. Instead of training a model to recognize fake signals, we built a **Zero-Day Threat Detector** using an **Unsupervised Isolation Forest**. 
+```mermaid
+flowchart LR
+    subgraph Client
+        UI["Next.js dashboard"]
+        Script["Scripts / curl"]
+    end
+    subgraph Service["FastAPI service (Cloud Run)"]
+        Auth["API-key auth"]
+        Val["Pydantic validation<br/>+ data cleaning"]
+        Feat["Physics-informed features<br/>(35 per row)"]
+        Model["StandardScaler +<br/>Isolation Forest"]
+        Sess["Per-session history<br/>(rolling windows)"]
+    end
+    Manifest[("Model artefact<br/>+ SHA-256 manifest")]
 
-By training our AI exclusively on the strict, real-world physical laws of authentic satellite signals (captured via the UAV-GS-Dataset), our system dynamically flags ANY mathematical or physical deviation—no matter how sophisticated—as an anomaly.
+    UI -->|"/api proxy adds X-API-Key"| Auth
+    Script -->|"X-API-Key"| Auth
+    Auth --> Val --> Feat --> Model -->|"anomaly score 0..1<br/>+ spoofed flag"| UI
+    Sess <--> Feat
+    Manifest -->|"verified at startup"| Model
+```
 
----
+* **Detector** (`src/gnss_shield`): cleaning, feature engineering, model loading with integrity check, scoring.
+* **API** (`gnss_shield.api`): `/health`, `/ready`, `/scan`, `/predict`, `/predict/batch`, `/predict/file`, `/reset`.
+* **Dashboard** (`frontend/`): Next.js 14 and React 18. Browser calls go to its own `/api` route, which forwards to the detector and adds the API key on the server.
+* **Evaluation** (`evals/`): a reproducible protocol that writes `evals/results/RESULTS.md`, and a benchmark that writes `evals/results/EDGE.md`.
+* **Deployment** (`deploy/`): scripts for Cloud Run and a billing budget alert, with a teardown script.
 
-## 🚀 Key Features & Impact
+More detail, including why the model is unsupervised, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-* **Zero-Day Threat Detection:** Employs an Unsupervised Isolation Forest model to detect deviations from authentic signal baselines without requiring prior knowledge of specific attack vectors.
-* **Physics-Informed Feature Engineering:** Analyzes cross-channel consistency by calculating the divergence between **Carrier Doppler Shifts ($f_d$)** and **Pseudorange Rates ($\dot{\rho}$)**, making it mathematically impossible for simple spoofers to bypass.
-* **Interactive Command Center:** Features a Next.js/Tailwind CSS dashboard for real-time signal injection, allowing operators to manually test extreme signal variances (Doppler/Pseudorange) and visualize the Anomaly Score instantly.
-* **Software-Only Deployment:** Eliminates the need for expensive, specialized anti-spoofing antennas, enabling cost-effective, scalable integration into existing drone telemetry systems.
+## Features
 
----
+* **Zero-day oriented.** Trained on genuine telemetry only; no attack signatures.
+* **Physics-informed features.** 11 engineered features plus 14 rolling mean/variance features over a 10-epoch window per channel, on top of 10 base fields: 35 model features from 12 required receiver fields.
+* **Software only.** Runs on the CPU; the model artefact is about 2.2 MB. It consumes receiver tracking-loop outputs (correlator and I/Q power values), so the receiver must expose them; no antenna or RF front-end change is involved.
+* **Validated input.** Every row is checked for the required fields and sensible ranges; malformed rows are rejected with a clear error instead of being scored.
+* **Stateful when asked.** Send a `session_id` and rolling windows continue across requests; omit it and each request is scored on its own.
+* **Verifiable model.** The model artefact is checked against the SHA-256 and feature list in its manifest at startup.
+* **Operable.** Structured JSON logs with request IDs, liveness and readiness endpoints, API-key authentication that fails closed, configurable CORS (closed by default), upload limits.
 
-## 📊 Performance & Model Disclaimer
+## Quickstart
 
-**Lab Performance:** During prototype validation on the UAV-GS-Dataset, our supervised testing achieved an **F1-Score of 1.0 (99.9% Precision)** on Label 3 (Sophisticated) attacks using our custom `triple_residual` feature chisel. 
+### With Docker Compose
 
-**Engineering Reality & Real-World Application:**
-While this proves the model perfectly captured the mathematical boundaries of the synthetic spoofing in the dataset, we acknowledge potential temporal leakage inherent in chronologically shuffled time-series GNSS data. In a real-world, atmospheric-noisy environment, operational accuracy is designed to stabilize around 92-95%. The current deployment utilizes **Unsupervised Anomaly Detection** to mitigate synthetic bias and prepare for live hardware-in-the-loop (HIL) environments.
-
----
-
-## ⚙️ System Architecture
-
-1. **Frontend (The Command Center):** `Next.js 14`, `Tailwind CSS`, `Framer Motion` for fluid glassmorphism UI, and `Recharts` for high-frame-rate anomaly score visualization.
-2. **Backend (The Bridge):** A lightweight `FastAPI`/`Flask` layer that parses live telemetry and routes it to the AI.
-3. **AI Engine (The Brain):** A highly optimized `Scikit-Learn` pipeline (`gnss_anti_spoofing_model.pkl`) that processes 35 engineered features (e.g., CN0 ratios, IQ imbalance, lock ratios) in milliseconds.
-
----
-
-## 🛠️ Setup & Local Installation
-
-### Prerequisites
-* Node.js (v18+)
-* Python (3.9+)
-
-### 1. Start the AI Backend
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-pip install -r requirements.txt
-python app.py
+make up
+```
+
+This copies `.env.example` to `.env` if needed, builds both images and serves the API on <http://localhost:8000> and the dashboard on <http://localhost:3000>. The example `.env` disables API-key checks for local use only.
+
+### Without Docker
+
+Python 3.10 to 3.13 and Node 20 are required.
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+make install-dev
+make dev-api
+```
+
+In a second terminal:
+
+```bash
+make dev-web
+```
+
+### Call the API
+
+```bash
+curl -s http://localhost:8000/health
+curl -s -F "file=@examples/attack_scenario_sudden.csv" http://localhost:8000/predict/file
+```
+
+With authentication on, add `-H "X-API-Key: $GNSS_API_KEY"`. Interactive API docs are served at `/docs`.
+
+## API
+
+| Route | Auth | Purpose |
+|---|---|---|
+| `GET /health` | no | Liveness |
+| `GET /ready` | no | Readiness: 200 once the model is loaded, otherwise 503 |
+| `GET /scan` | yes | Model hash, scikit-learn versions, feature count |
+| `POST /predict` | yes | Rows as JSON; per-row predictions and engineered features. Optional `session_id` |
+| `POST /predict/batch` | yes | Rows as JSON; summary, per-satellite statistics and compact predictions |
+| `POST /predict/file` | yes | Upload a `.csv` or `.json` telemetry log; summary and a timeline of up to 200 rows |
+| `POST /reset` | yes | Forget one session's rolling-window history |
+
+A row needs `Carrier_Doppler_hz`, `Pseudorange_m`, `RX_time`, `TOW`, `Carrier_phase`, `EC`, `LC`, `PC`, `PIP`, `PQP`, `TCD` and `CN0`; `PRN`, `channel` and `time` are optional. Rows with `PRN = 0` (no satellite lock) are dropped and counted in `rows_dropped`.
+
+## Configuration
+
+All settings are environment variables; see [.env.example](.env.example). The important ones are `GNSS_API_KEY`, `GNSS_AUTH_DISABLED` (local development only), `GNSS_CORS_ORIGINS` and `GNSS_MODEL_PATH`.
+
+## Evaluation and deployment readiness
+
+```bash
+make test     # pytest with coverage
+make eval     # writes evals/results/RESULTS.md
+make bench    # writes evals/results/EDGE.md
+make train    # refits the model on data/train.xls and rewrites the manifest
+```
+
+`make eval` fits the model on the first 70% of each channel's timeline, injects documented synthetic attacks into the held-out 30%, and reports precision, recall, F1, ROC-AUC, average precision and the confusion matrix per scenario and seed, plus the false-alarm rate on untouched genuine rows. The training data contains no spoofed rows, so these results describe separation of the injected perturbation, not performance against real spoofing hardware.
+
+`make bench` runs in a fresh process and reports model size, peak memory, CPU latency (p50, p95, p99) and throughput by batch size, and lists the receiver fields the detector needs.
+
+Both commands generate their report files; the numbers belong in those files and are not copied here by hand.
+
+## Deploy to Google Cloud
+
+The detector and the dashboard each run as a Cloud Run service that scales to zero. The API key is generated once and kept in Secret Manager.
+
+```bash
+export GCP_PROJECT=<project-id>
+export GCP_REGION=<region>
+make deploy
+```
+
+To create a billing budget alert first, set `BILLING_ACCOUNT_ID` and `BUDGET_AMOUNT` and run `make budget`. `make teardown` removes the services, the secret and the service account. Details and limits are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Dataset credit
+
+The telemetry schema (an 8-channel receiver, 13 measurements per record, authentic signals plus simplistic, intermediate and sophisticated spoofing attacks) matches the public dataset below, which is released under CC BY 4.0:
+
+> Aissou, Ghilas. *A DATASET for GPS Spoofing Detection on Unmanned Aerial System*. Mendeley Data, V3, 2022. DOI [10.17632/z7dj3yyzt8.3](https://doi.org/10.17632/z7dj3yyzt8.3). University of North Dakota. Licence: CC BY 4.0.
+
+The sheet in `data/` was used for a college hackathon at SRM and contains only genuine signals. See [data/README.md](data/README.md).
+
+## Project layout
+
+```text
+src/gnss_shield/   detector, features, API, training, evaluation library
+tests/             pytest suites
+evals/             evaluation and benchmark scripts, generated reports
+frontend/          Next.js dashboard and its Dockerfile
+models/            model artefact and manifest
+data/              training sheet and notes on its source
+deploy/            Cloud Run, budget and teardown scripts
+notebooks/         original Colab notebook
+examples/          sample telemetry files
+docs/              architecture, roadmap, audit
+```
+
+## Roadmap
+
+Planned work, with what each item needs and when it counts as done, is tracked in [docs/ROADMAP.md](docs/ROADMAP.md).

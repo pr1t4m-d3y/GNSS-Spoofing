@@ -1,6 +1,6 @@
 # GNSS Security Shield — Plan (Step 3)
 
-**Status: awaiting your approval. Nothing below has been built.** Based on [`AUDIT.md`](AUDIT.md). Branch: `feat/fde-upgrade`; small commits; PR at the end; I do not merge until you say so.
+**Historical document.** This plan was written before the build and describes the original layout. What is built and what remains is tracked in [`ROADMAP.md`](ROADMAP.md). Based on [`AUDIT.md`](AUDIT.md). Branch: `feat/fde-upgrade`; small commits; PR at the end; no merge until the owner says so.
 
 Effort: S ≈ <½ day, M ≈ ½–1.5 days, L ≈ 2+ days. Impact is for the FDE application.
 
@@ -30,7 +30,7 @@ Effort: S ≈ <½ day, M ≈ ½–1.5 days, L ≈ 2+ days. Impact is for the FDE
 | F4 | **Global mutable `history_manager`** shared across all clients in single-row `/predict`. Make state per request / per session ID, or require batches. | S–M | Med | Directly relevant to concurrency on Cloud Run. |
 | F5 | Open CORS (`*` + credentials). Configurable allow-list from env. | S | Med | |
 | F6 | Frontend hard-coded `http://localhost:8000` ×4. Use `NEXT_PUBLIC_API_URL`. | S | Med | Needed for deployment. |
-| F7 | Repo hygiene: duplicate model pickle, `test_result.json` (0 B), `dirty_test.csv`/`test_nan.json`, `Know your project.md`, two conflicting READMEs, `/Users/atharv/...` path in the run guide, missing `LICENSE`. | S | Med | Part of the layout commit (D7). |
+| F7 | Repo hygiene: duplicate model pickle, `test_result.json` (0 B), `dirty_test.csv`/`test_nan.json`, `Know your project.md`, two conflicting READMEs, developer-specific absolute path in the run guide, missing `LICENSE`. | S | Med | Part of the layout commit (D7). |
 
 ## 2. Build — new things
 
