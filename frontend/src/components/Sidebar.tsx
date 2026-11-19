@@ -1,14 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Home, Satellite, Bell, Terminal, Settings, LogOut, ShieldCheck } from "lucide-react";
+import { Home, Satellite, Bell, Terminal, ShieldCheck } from "lucide-react";
 
 const menuItems = [
   { icon: Home, label: "Home", id: "home" },
   { icon: Satellite, label: "Satellites", id: "satellites" },
   { icon: Bell, label: "Alerts", id: "alerts" },
   { icon: Terminal, label: "Logs", id: "logs" },
-  { icon: Settings, label: "Settings", id: "settings" },
 ];
 
 interface SidebarProps {
@@ -51,12 +50,6 @@ export default function Sidebar({ activeView, onNavigate }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="mt-auto pt-6 border-t border-indigo-200/30 dark:border-white/10">
-        <button className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-indigo-900/60 dark:text-white/60 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors">
-          <LogOut size={20} />
-          <span className="font-medium">Logout</span>
-        </button>
-      </div>
     </div>
   );
 }

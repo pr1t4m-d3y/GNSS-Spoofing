@@ -19,10 +19,10 @@ import ModernInput from "@/components/ModernInput";
 import SatellitesView from "@/components/views/SatellitesView";
 import AlertsView from "@/components/views/AlertsView";
 import LogsView from "@/components/views/LogsView";
-import SettingsView from "@/components/views/SettingsView";
 
 // Types
-import type { LogEntry, SignalPoint, AppSettings } from "@/types";
+import type { LogEntry, SignalPoint } from "@/types";
+import { API_BASE, deriveSatellites, errorMessage, newSessionId } from "@/lib/api";
 
 // ── Helper: generate unique IDs ──
 let logIdCounter = 0;
@@ -43,11 +43,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [signalSeries, setSignalSeries] = useState<SignalPoint[]>([]);
-  const [settings, setSettings] = useState<AppSettings>({
-    sensitivity: 50,
-    theme: "light",
-    notificationsEnabled: true,
-  });
+  const [sessionId] = useState(newSessionId);
 
   // ── Add Log Entry Helper ──
   const addLog = useCallback((entry: Omit<LogEntry, "id" | "timestamp">) => {
@@ -66,7 +62,7 @@ export default function Home() {
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const res = await axios.post("http://localhost:8000/predict/file", formData);
+      const res = await axios.post(`${API_BASE}/predict/file`, formData);
       setPrediction(res.data);
 
       // Generate signal points from timeline
@@ -102,12 +98,12 @@ export default function Home() {
         });
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message);
+      setError(errorMessage(err));
       addLog({
         type: "alert",
         severity: "warning",
         message: `Upload Failed: ${file.name}`,
-        details: err.response?.data?.detail || err.message,
+        details: errorMessage(err),
       });
     } finally {
       setIsProcessing(false);
@@ -119,8 +115,8 @@ export default function Home() {
     setIsProcessing(true);
     setError(null);
     try {
-      const payload = { data: [data] };
-      const res = await axios.post("http://localhost:8000/predict", payload);
+      const payload = { data: [data], session_id: sessionId };
+      const res = await axios.post(`${API_BASE}/predict`, payload);
       setPrediction(res.data);
 
       // Extract result
@@ -159,7 +155,7 @@ export default function Home() {
         });
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message);
+      setError(errorMessage(err));
     } finally {
       setIsProcessing(false);
     }
@@ -169,7 +165,7 @@ export default function Home() {
   const handleReset = async () => {
     setIsProcessing(true);
     try {
-      await axios.post("http://localhost:8000/reset");
+      await axios.post(`${API_BASE}/reset`, { session_id: sessionId });
       setPrediction(null);
       setError(null);
       setSignalSeries([]);
@@ -179,7 +175,7 @@ export default function Home() {
         message: "System Reset — All data cleared",
       });
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message);
+      setError(errorMessage(err));
     } finally {
       setIsProcessing(false);
     }
@@ -189,49 +185,42 @@ export default function Home() {
   const handleScan = async () => {
     setIsProcessing(true);
     setError(null);
-    addLog({
-      type: "scan",
-      severity: "info",
-      message: "System Scan Initiated",
-    });
+    addLog({ type: "scan", severity: "info", message: "System Scan Initiated" });
     try {
-      await axios.get("http://localhost:8000/scan");
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const res = await axios.get(`${API_BASE}/scan`);
+      const loaded = res.data?.model_loaded === true;
       addLog({
         type: "scan",
-        severity: "info",
-        message: "System Scan Complete — All subsystems operational",
+        severity: loaded ? "info" : "warning",
+        message: loaded ? "System Scan Complete — model loaded" : "System Scan Complete — model not loaded",
+        details: loaded ? `${res.data.feature_count} features · scikit-learn ${res.data.sklearn_runtime}` : undefined,
       });
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      addLog({
-        type: "scan",
-        severity: "info",
-        message: "System Scan Complete",
-      });
+    } catch (err: any) {
+      addLog({ type: "scan", severity: "warning", message: "System Scan Failed", details: errorMessage(err) });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // ── Report ──
+  // ── Report: download the session log as JSON ──
   const handleReport = () => {
+    const report = {
+      generated: new Date().toISOString(),
+      packets_analyzed: signalSeries.length,
+      log: logs,
+    };
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "gnss-shield-report.json";
+    link.click();
+    URL.revokeObjectURL(url);
     addLog({
       type: "report",
       severity: "info",
-      message: "Manual Security Report Generated",
+      message: "Security report downloaded",
       details: `Signal series: ${signalSeries.length} packets analyzed`,
-    });
-  };
-
-  // ── Settings ──
-  const handleUpdateSettings = (newSettings: AppSettings) => {
-    setSettings(newSettings);
-    addLog({
-      type: "report",
-      severity: "info",
-      message: "Settings Updated",
-      details: `Sensitivity: ${newSettings.sensitivity}% | Theme: ${newSettings.theme} | Notifications: ${newSettings.notificationsEnabled ? "On" : "Off"}`,
     });
   };
 
@@ -239,20 +228,17 @@ export default function Home() {
   const navigateTo = (viewId: string) => setActiveView(viewId);
 
   // ── Computed ──
-  const activeSats = prediction?.summary?.active_satellites || [];
-  const sampleSat = prediction?.features?.[0] || { PRN: 12, Carrier_Doppler_hz: 1500, CN0: 45 };
+  const satellites = deriveSatellites(prediction);
 
   // ── Render Views ──
   const renderView = () => {
     switch (activeView) {
       case "satellites":
-        return <SatellitesView />;
+        return <SatellitesView satellites={satellites} />;
       case "alerts":
         return <AlertsView logs={logs} />;
       case "logs":
         return <LogsView logs={logs} />;
-      case "settings":
-        return <SettingsView settings={settings} onUpdateSettings={handleUpdateSettings} />;
       default:
         return renderHome();
     }
@@ -264,7 +250,7 @@ export default function Home() {
       <header className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-black text-indigo-950 dark:text-white tracking-tight">Security Command</h1>
-          <p className="text-sm font-bold text-gray-400 dark:text-white/20 uppercase tracking-widest mt-1">v2.4 Active Monitoring</p>
+          <p className="text-sm font-bold text-gray-400 dark:text-white/20 uppercase tracking-widest mt-1">Active Monitoring</p>
         </div>
         <div className="flex items-center gap-4">
           {error && (
@@ -277,15 +263,6 @@ export default function Home() {
             </motion.div>
           )}
           <ThemeToggle />
-          <div className="flex items-center gap-3 bg-white dark:bg-dark-card p-2 pr-4 rounded-2xl shadow-soft dark:shadow-none border border-transparent dark:border-white/5 cursor-pointer">
-            <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-white/5 flex items-center justify-center text-indigo-600 dark:text-accent-secondary">
-              S
-            </div>
-            <div className="hidden sm:block">
-              <p className="text-xs font-black text-indigo-950 dark:text-white">Security Ops</p>
-              <p className="text-[10px] font-bold text-gray-400">Officer 402</p>
-            </div>
-          </div>
         </div>
       </header>
 
@@ -303,7 +280,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bento-card p-6 flex flex-col justify-center gap-4">
-              <ActiveSatGrid satellites={activeSats} />
+              <ActiveSatGrid satellites={satellites} />
             </div>
             <div className="bento-card p-6 flex flex-col justify-center">
               <div className="flex justify-between items-center mb-4">
@@ -313,8 +290,8 @@ export default function Home() {
               <p className="text-3xl font-black text-indigo-950 dark:text-white tracking-tighter">
                 {signalSeries.length > 0
                   ? `${(100 - (signalSeries.slice(-10).reduce((a, b) => a + b.score, 0) / Math.max(signalSeries.slice(-10).length, 1))).toFixed(1)}`
-                  : "99.2"}
-                <span className="text-sm font-bold text-gray-400 ml-1">%</span>
+                  : "—"}
+                {signalSeries.length > 0 && <span className="text-sm font-bold text-gray-400 ml-1">%</span>}
               </p>
               <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-tight mt-2 flex items-center gap-1">
                 {signalSeries.length} packets <span className="text-gray-400 dark:text-white/20">analyzed</span>
@@ -333,9 +310,15 @@ export default function Home() {
         <div className="xl:col-span-6 flex flex-col gap-6 min-w-0">
           {/* Satellite Cards */}
           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide perspective-1000">
-            <SatelliteCard prn={sampleSat.PRN} snr={sampleSat.CN0} isSpoofed={prediction?.predictions?.[0]?.is_spoofed || false} />
-            <SatelliteCard prn={28} snr={42.5} isSpoofed={false} delay={0.1} />
-            <SatelliteCard prn={14} snr={38.2} isSpoofed={false} delay={0.2} />
+            {satellites.slice(0, 3).map((sat, i) => (
+              <SatelliteCard
+                key={sat.prn}
+                prn={sat.prn}
+                snr={sat.meanCn0}
+                isSpoofed={sat.spoofedSamples > 0}
+                delay={i * 0.1}
+              />
+            ))}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">

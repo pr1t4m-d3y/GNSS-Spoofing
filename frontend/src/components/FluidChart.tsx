@@ -12,17 +12,17 @@ interface FluidChartProps {
 }
 
 export default function FluidChart({ signalSeries }: FluidChartProps) {
-  const { data, authPercent, droppedPercent, hasSpoofed } = useMemo(() => {
+  const { data, authPercent, droppedPercent, hasSpoofed, hasData } = useMemo(() => {
     if (signalSeries.length === 0) {
-       // Idle state — flat line at low anomaly
-       const idle: SignalPoint[] = Array.from({ length: 20 }, (_, i) => ({
-         index: i,
-         score: 5 + Math.sin(i * 0.5) * 4,
-         is_spoofed: false
-       }));
-       return { data: idle, authPercent: "100.0", droppedPercent: "0.0", hasSpoofed: false };
+      return {
+        data: [] as SignalPoint[],
+        authPercent: "—",
+        droppedPercent: "—",
+        hasSpoofed: false,
+        hasData: false,
+      };
     }
-    
+
     // Sliding window: show last 100 points
     const windowed = signalSeries.slice(-100);
     
@@ -35,7 +35,8 @@ export default function FluidChart({ signalSeries }: FluidChartProps) {
       data: windowed.map((p, i) => ({ ...p, index: i })), 
       authPercent: authPct, 
       droppedPercent: dropPct, 
-      hasSpoofed: spoofedCount > 0 
+      hasSpoofed: spoofedCount > 0,
+      hasData: true,
     };
   }, [signalSeries]);
 
@@ -55,7 +56,7 @@ export default function FluidChart({ signalSeries }: FluidChartProps) {
              ? "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400" 
              : "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
          }`}>
-           {hasSpoofed ? "Anomalies Detected" : "All Clear"}
+           {!hasData ? "No data" : hasSpoofed ? "Anomalies Detected" : "All Clear"}
          </div>
       </div>
 
@@ -112,7 +113,7 @@ export default function FluidChart({ signalSeries }: FluidChartProps) {
             </div>
             <div>
                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Auth signals</p>
-               <p className="text-sm font-bold dark:text-white">{authPercent}%</p>
+               <p className="text-sm font-bold dark:text-white">{authPercent}{hasData ? "%" : ""}</p>
             </div>
          </div>
          <div className="flex items-center gap-3">
@@ -125,7 +126,7 @@ export default function FluidChart({ signalSeries }: FluidChartProps) {
             </div>
             <div>
                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">DROPPED</p>
-               <p className={`text-sm font-bold ${hasSpoofed ? 'text-red-600 dark:text-red-400' : 'dark:text-white'}`}>{droppedPercent}%</p>
+               <p className={`text-sm font-bold ${hasSpoofed ? 'text-red-600 dark:text-red-400' : 'dark:text-white'}`}>{droppedPercent}{hasData ? "%" : ""}</p>
             </div>
          </div>
       </div>

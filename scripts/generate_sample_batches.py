@@ -63,8 +63,8 @@ def generate_gnss_data(filename, num_rows, attack_type=None):
         
     df = pd.DataFrame(data)
     
-    os.makedirs('batch_examples', exist_ok=True)
-    filepath = f'batch_examples/{filename}'
+    os.makedirs('examples', exist_ok=True)
+    filepath = f'examples/{filename}'
     df.to_csv(filepath, index=False)
     print(f"✓ Generated {filepath} ({num_rows} rows)")
 
@@ -78,4 +78,4 @@ if __name__ == "__main__":
     # 3. Mixed — alternating normal/spoofed for stress testing
     generate_gnss_data("mixed_stress_test.csv", 500, attack_type="mixed")
     
-    print("\n✅ All batch files generated in batch_examples/")
+    print("\n✅ All batch files generated in examples/")

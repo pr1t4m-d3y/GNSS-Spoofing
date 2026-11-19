@@ -20,19 +20,11 @@ export interface SignalPoint {
   is_spoofed: boolean;
 }
 
-// ── Settings ──
-export interface AppSettings {
-  sensitivity: number;        // 0-100, default 50
-  theme: "light" | "dark" | "security";
-  notificationsEnabled: boolean;
-}
-
-// ── Satellite Info ──
-export interface SatelliteInfo {
+// ── Per-satellite statistics derived from analysed telemetry ──
+export interface SatelliteStat {
   prn: number;
-  snr: number;
-  elevation: number;
-  status: "Healthy" | "Degraded" | "Compromised";
-  lastSeen: string;
-  history: number[]; // last N anomaly scores
+  samples: number;
+  spoofedSamples: number;
+  meanScore: number; // 0..1 anomaly score
+  meanCn0: number; // dB-Hz
 }
